@@ -82,10 +82,29 @@ Result:
 | B           | 2021-01-01 | curry        | 1        |
 | C           | 2021-01-01 | ramen        | 1        |
 | C           | 2021-01-01 | ramen        | 1        |
--- Customer A ordered curry and sushi; B ordered curry, C ordered 2 orders of ramen. 
+- Customer A ordered curry and sushi; B ordered curry, C ordered 2 orders of ramen. 
 
 ***
 **4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
+
+SQL query:    
+ ````SQL
+    SELECT 
+    	m.product_name,
+        COUNT(m.product_name) AS totalPurchased
+    FROM dannys_diner.sales AS s
+    LEFT JOIN dannys_diner.menu AS m
+    ON s.product_id = m.product_id
+    GROUP BY m.product_name
+    ORDER BY totalPurchased DESC
+    LIMIT 1
+````
+Result:
+| product_name | totalpurchased |
+| ------------ | -------------- |
+| ramen        | 8              |
+- Ramen was the most purchased item, purchased 8 times. 
+
 ***
 **5. Which item was the most popular for each customer?**
 ***
