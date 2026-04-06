@@ -5,7 +5,7 @@
 Danny would like to answer 10 questions about this customers purchasing patterns, sales, and top menu items at his diner. The full problem statement can be found [here](https://8weeksqlchallenge.com/case-study-1/).
 
 ## Table Schema
-<img src="https://github.com/chrisliu258/8-Week-SQL-Challenge/blob/main/images/table-schema.png">
+<img src="https://github.com/chrisliu258/8-Week-SQL-Challenge/blob/main/images/week1-table-schema.png">
 
 ## Questions & Solutions
 
