@@ -42,26 +42,22 @@ Table 2 - customer_orders: There are blank spaces and null values in the exclusi
 | 10       | 104         | 1        | null       | null   | 2020-01-11 18:34:49 |
 | 10       | 104         | 1        | 2, 6       | 1, 4   | 2020-01-11 18:34:49 |
 
-Remove null values and replace with ' ' (blank space) in a temporary table:
+Remove null values and replace with ' ' (blank space) with UPDATE statement:
 ````sql
-    CREATE TEMP TABLE temp_custorders AS
-    SELECT 
-      order_id, 
-      customer_id, 
-      pizza_id, 
-      CASE
-    	  WHEN exclusions IS null OR exclusions LIKE 'null' THEN ' '
-    	  ELSE exclusions
-    	  END AS exclusions,
-      CASE
-    	  WHEN extras IS NULL OR extras LIKE 'null' THEN ' ' 
-    	  ELSE extras
-    	  END AS extras,
-    	order_time
-    FROM customer_orders;
+UPDATE customer_orders
+SET exclusions = CASE 
+    WHEN TRIM(exclusions) = '' THEN NULL
+    WHEN exclusions = 'null' THEN NULL
+    ELSE exclusions
+	END,
+	extras = CASE 
+    WHEN TRIM(extras) = '' THEN NULL
+    WHEN extras = 'null' THEN NULL
+    ELSE extras
+    END;
 
-    SELECT *
-    FROM temp_custorders
+SELECT *
+FROM customer_orders
 ````
 Result:
 | order_id | customer_id | pizza_id | exclusions | extras | order_time          |
@@ -95,36 +91,36 @@ Table 3 - runner_orders: Again, there are null values and blank spaces found in 
 | 9        | 2         | null                | null     | null       | Customer Cancellation   |
 | 10       | 1         | 2020-01-11 18:50:20 | 10km     | 10minutes  | null                    |
 
-Remove null values and replace with ' ' (blank space) in a temporary table. Clean up formatting of units in distance and duration columns:
+Remove null values and replace with ' ' (blank space) using and UPDATE statement. Clean up formatting of units in distance and duration columns:
 ````sql
-    CREATE TEMP TABLE temp_runorders AS
-        SELECT 
-          order_id, 
-          runner_id, 
-          CASE
-        	  WHEN pickup_time IS null OR pickup_time LIKE 'null' THEN ' '
-        	  ELSE pickup_time
-              END AS pickup_time,
-          CASE
-        	  WHEN distance IS NULL OR distance LIKE 'null' THEN ' ' 
-              WHEN distance LIKE '%km' THEN TRIM('km' from distance)
-        	  ELSE distance
-        	  END AS distance,
-          CASE
-        	  WHEN duration IS NULL OR duration LIKE 'null' THEN ' '
-              WHEN duration LIKE '%mins' THEN TRIM('mins' from duration)
-              WHEN duration LIKE '%minute' THEN TRIM('minute' from duration)
-              WHEN duration LIKE '%minutes' THEN TRIM('minutes' from duration)
-        	  ELSE duration
-        	  END AS duration,
-          CASE
-             WHEN cancellation IS NULL OR cancellation LIKE 'null' THEN ' ' 
-        	  ELSE cancellation
-        	  END AS cancellation
-        FROM runner_orders;
+    UPDATE runner_orders
+    SET pickup_time = CASE 
+        WHEN TRIM(pickup_time) = '' THEN NULL
+        WHEN pickup_time = 'null' THEN NULL
+        ELSE pickup_time
+	    END,
+	    distance = CASE 
+        WHEN TRIM(distance) = '' THEN NULL 
+        WHEN distance = 'null' THEN NULL
+        WHEN distance LIKE '%km' THEN TRIM('km' from distance)
+        ELSE distance
+        END,
+        duration = CASE
+        WHEN TRIM(duration) = '' THEN NULL 
+        WHEN duration = 'null' THEN NULL
+        WHEN duration LIKE '%mins' THEN TRIM('mins' from duration)
+        WHEN duration LIKE '%minute' THEN TRIM('minute' from duration)
+        WHEN duration LIKE '%minutes' THEN TRIM('minutes' from duration)
+        ELSE duration
+        END,
+        cancellation = CASE 
+        WHEN TRIM(cancellation) = '' THEN NULL 
+        WHEN cancellation = 'null' THEN NULL
+        ELSE cancellation
+        END;
 
-    SELECT *
-        FROM temp_runorders
+SELECT *
+FROM runner_orders
 ````
 
 | order_id | runner_id | pickup_time         | distance | duration | cancellation            |
@@ -176,19 +172,72 @@ The data is now cleansed and ready for analysis.
 SQL Query:
 ````sql
     SELECT COUNT(co.order_id)
-    FROM temp_custorders as co
+    FROM customer_orders as co
 ````
 Result:
 | count |
 | ----- |
 | 14    |
-- 14 orders were placed. 
+- 14 pizzas were ordered. 
 ***
 **3. How many unique customer orders were made?**
+
+SQL Query:
+````sql
+SELECT COUNT(DISTINCT co.order_id) as unique_orders
+FROM customer_orders as co
+````
+Result:
+| unique_orders |
+| ------------- |
+| 10            |
+
+- 10 orders were placed. 
+
 ***
 **4. How many successful orders were delivered by each runner?**
+
+SQL Query:
+````sql
+    SELECT ro.runner_id,
+    	COUNT(ro.order_id)
+    FROM runner_orders as ro
+    WHERE ro.cancellation IS NULL
+    GROUP BY ro.runner_id
+````
+Result:
+| runner_id | count |
+| --------- | ----- |
+| 1         | 4     |
+| 2         | 3     |
+| 3         | 1     |
+
+- Runner 1 delivered 4 orders, 2 delivered 3, 3 delivered 1. 
+
 ***
 **5. How many of each type of pizza was delivered?**
+
+SQL Query:
+````sql
+    SELECT
+    	pn.pizza_name,
+        COUNT(pizza_name)
+    FROM customer_orders as co
+    INNER JOIN runner_orders as ro
+    ON co.order_id = ro.order_id
+    LEFT JOIN pizza_names pn
+    ON co.pizza_id = pn.pizza_id
+    WHERE ro.distance IS NOT NULL
+    GROUP BY pn.pizza_name
+````
+Result:
+| pizza_name | count |
+| ---------- | ----- |
+| Meatlovers | 9     |
+| Vegetarian | 3     |
+
+- 9 Meatlovers and 3 Vegetarian pizzas where delivered. 
+
 ***
 **6. How many Vegetarian and Meatlovers were ordered by each customer?**
 ***
