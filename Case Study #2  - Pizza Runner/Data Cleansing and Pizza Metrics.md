@@ -268,14 +268,128 @@ Result:
 ***
 **7. What was the maximum number of pizzas delivered in a single order?**
 
+SQL Query:
+````sql
+    SELECT
+    	ro.order_id,
+        COUNT(ro.order_id) as order_size
+    FROM customer_orders as co
+    INNER JOIN runner_orders as ro
+    ON co.order_id = ro.order_id
+    WHERE ro.cancellation IS NULL
+    GROUP BY ro.order_id
+    ORDER BY ro.order_id ASC
+````
+Result:
+| order_id | order_size |
+| -------- | ---------- |
+| 1        | 1          |
+| 2        | 1          |
+| 3        | 2          |
+| 4        | 3          |
+| 5        | 1          |
+| 7        | 1          |
+| 8        | 1          |
+| 10       | 2          |
+- The largest order was for 3 pizzas.
+
 ***
 **8. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?**
+
+SQL Query:
+````sql
+    SELECT
+    	co.customer_id,
+        COUNT(CASE 
+              	WHEN co.exclusions IS NOT NULL OR co.extras IS NOT NULL
+              	THEN 1
+              END) AS changed_order,
+        COUNT(CASE
+              	WHEN co.exclusions IS NULL AND co.extras IS NULL
+              	THEN 1
+              END) AS no_changes
+    FROM customer_orders as co
+    INNER JOIN runner_orders as ro
+    ON ro.order_id = co.order_id
+    WHERE ro.cancellation IS NULL
+    GROUP BY co.customer_id
+    ORDER BY co.customer_id ASC;
+````
+Result:
+| customer_id | changed_order | no_changes |
+| ----------- | ------------- | ---------- |
+| 101         | 0             | 2          |
+| 102         | 0             | 3          |
+| 103         | 3             | 0          |
+| 104         | 2             | 1          |
+| 105         | 1             | 0          |
+
+- Customer 101 received 2 pizzas and made no changes; Customer 102 received 3 pizzas and made no changes; Customer 103 received 3 pizzas and modified all 3; Customer 104 received 3 pizzas and modified 1; Customer 105 received 1 pizza and had it modified.
+  
 ***
 **9. How many pizzas were delivered that had both exclusions and extras?**
+
+SQL Query:
+````sql
+    SELECT
+        COUNT(CASE 
+              	WHEN co.exclusions IS NOT NULL AND co.extras IS NOT NULL
+              	THEN 1
+              END) AS changed_order
+    FROM customer_orders as co
+    INNER JOIN runner_orders as ro
+    ON ro.order_id = co.order_id
+    WHERE ro.cancellation IS NULL
+````
+Result:
+| changed_order |
+| ------------- |
+| 1             |
+- There was a single order delivered where a customer asked for both excluded and extra toppings. 
+
 ***
 **10. What was the total volume of pizzas ordered for each hour of the day?**
+
+SQL Query:
+````sql
+    SELECT 
+    	EXTRACT(HOUR FROM co.order_time) AS hour_ordered, 
+        COUNT(co.order_id) AS num_ordered
+    FROM customer_orders as co
+    GROUP BY EXTRACT(HOUR FROM co.order_time)
+    ORDER by hour_ordered ASC
+````
+Result: 
+| hour_ordered | num_ordered |
+| ------------ | ----------- |
+| 11           | 1           |
+| 13           | 3           |
+| 18           | 3           |
+| 19           | 1           |
+| 21           | 3           |
+| 23           | 3           |
+ - 1 pizza was ordered between 11AM and 12PM, 3 pizzas between 1PM and 2PM, 3 pizzas between 6PM and 7PM, 1 pizza between 7PM and 8PM, 3 pizzas between 9PM and 10PM, 3 pizzas between 11PM and 12AM. 
+
 ***
 **11. What was the volume of orders for each day of the week?**
+
+SQL Query:
+````sql
+    SELECT 
+    	to_char(co.order_time, 'Day') AS day_ordered, 
+        COUNT(co.order_id) AS num_ordered
+    FROM customer_orders as co
+    GROUP BY to_char(co.order_time, 'Day')
+````
+Result:
+| day_ordered | num_ordered |
+| ----------- | ----------- |
+| Saturday    | 5           |
+| Thursday    | 3           |
+| Friday      | 1           |
+| Wednesday   | 5           |
+
+- 5 pizzas were ordered Wednesday, 3 on Thursday, 1 on Friday, and 5 on Saturday. 
 ***
 
 
